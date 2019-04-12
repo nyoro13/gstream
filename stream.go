@@ -2,7 +2,6 @@ package gstream
 
 import (
 	"context"
-	"runtime"
 )
 
 type Stream struct {
@@ -10,8 +9,6 @@ type Stream struct {
 	isOpen bool
 	done   chan<- interface{}
 }
-
-var bufSize = runtime.NumCPU()
 
 func newStream(stream <-chan interface{}, done chan interface{}) *Stream {
 	return &Stream{stream: stream, isOpen: false, done: done}
@@ -34,6 +31,10 @@ func execDefault(ctx context.Context, done <-chan interface{}, reader <-chan int
 }
 
 func NewStream(ctx context.Context, slice []interface{}) *Stream {
+	return NewBufferedStream(ctx, slice, 0)
+}
+
+func NewBufferedStream(ctx context.Context, slice []interface{}, bufSize int) *Stream {
 	stream := make(chan interface{}, bufSize)
 	done := make(chan interface{})
 	go func() {
@@ -53,6 +54,10 @@ func NewStream(ctx context.Context, slice []interface{}) *Stream {
 }
 
 func GenerateStream(ctx context.Context, generator func() interface{}) *Stream {
+	return GenerateBufferedStream(ctx, generator, 0)
+}
+
+func GenerateBufferedStream(ctx context.Context, generator func() interface{}, bufSize int) *Stream {
 	stream := make(chan interface{}, bufSize)
 	done := make(chan interface{})
 
@@ -85,7 +90,7 @@ func (s *Stream) GetChannel() <-chan interface{} {
 }
 
 func (s *Stream) Take(ctx context.Context, num int) *Stream {
-	stream := make(chan interface{}, num)
+	stream := make(chan interface{}, cap(s.stream))
 	done := make(chan interface{})
 
 	go func() {
@@ -115,7 +120,7 @@ func (s *Stream) Take(ctx context.Context, num int) *Stream {
 }
 
 func (s *Stream) Skip(ctx context.Context, num int) *Stream {
-	stream := make(chan interface{}, bufSize)
+	stream := make(chan interface{}, cap(s.stream))
 	done := make(chan interface{})
 
 	go func() {
@@ -134,7 +139,7 @@ func (s *Stream) Skip(ctx context.Context, num int) *Stream {
 }
 
 func (s *Stream) Map(ctx context.Context, mapFunc func(interface{}) interface{}) *Stream {
-	stream := make(chan interface{}, bufSize)
+	stream := make(chan interface{}, cap(s.stream))
 	done := make(chan interface{})
 
 	go func() {
@@ -145,7 +150,7 @@ func (s *Stream) Map(ctx context.Context, mapFunc func(interface{}) interface{})
 }
 
 func (s *Stream) Filter(ctx context.Context, filter func(val interface{}) bool) *Stream {
-	stream := make(chan interface{}, bufSize)
+	stream := make(chan interface{}, cap(s.stream))
 	done := make(chan interface{})
 
 	go func() {
@@ -160,7 +165,7 @@ func (s *Stream) Filter(ctx context.Context, filter func(val interface{}) bool) 
 }
 
 func (s *Stream) Distinct(ctx context.Context) *Stream {
-	stream := make(chan interface{}, bufSize)
+	stream := make(chan interface{}, cap(s.stream))
 	done := make(chan interface{})
 
 	go func() {

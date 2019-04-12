@@ -159,9 +159,9 @@ func TestFirst(t *testing.T) {
 
 	ctx2, cancel2 := context.WithCancel(context.Background())
 	cancel2()
-	val, ok = GenerateStream(ctx2, generator).First()
-	if ok {
-		t.Errorf("unexpected first value. expected: closed, actual: %d", val)
+	val2, ok2 := GenerateStream(ctx2, generator).First()
+	if ok2 {
+		t.Errorf("unexpected first value. expected: closed, actual: %d", val2)
 	}
 }
 
